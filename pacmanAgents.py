@@ -17,12 +17,45 @@ from game import Agent
 import random
 import math
 
+
 class CompetitionAgent(Agent):
     # Initialization Function: Called one time when the game starts
     def registerInitialState(self, state):
-        return;
+        return
 
     # GetAction Function: Called with every frame
     def getAction(self, state):
         # TODO: write your algorithm Algorithm instead of returning Directions.STOP
         return Directions.STOP
+
+
+class DodgingGhost(Agent):
+    def registerInitialState(self, state):
+        return
+
+    def getAction(self, state):
+        actions = state.getLegalPacmanActions()
+        actions.append(Directions.STOP)
+        bestAction = None
+        farthestDistance = 0.0
+        # loop to find the farthest euclidean distance between pacman and ghosts
+        for action in actions:
+            nextState = state.generatePacmanSuccessor(action)
+            # find next positions of ghost and pacman
+            ghostPositions = nextState.getGhostPositions()
+            nextPosition = nextState.getPacmanPosition()
+            # get distance, find the closer ghost, and try to keep away from it
+            distance = min(getEuclideanDistance(ghostPositions, nextPosition))
+            if distance > farthestDistance:
+                farthestDistance = distance
+                bestAction = action
+
+        # return the action leads to farthest distance from ghost
+        return bestAction
+
+
+def getEuclideanDistance(ghostPositions, pacmanPosition):
+    distanceList = []
+    for position in ghostPositions:
+        distanceList.append(math.sqrt((position[0] - pacmanPosition[0]) ** 2 + (position[1] - pacmanPosition[1]) ** 2))
+    return distanceList

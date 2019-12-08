@@ -22,13 +22,153 @@ import copy
 class CompetitionAgent(Agent):
     # Initialization Function: Called one time when the game starts
     def registerInitialState(self, state):
+        self.managerAgent = ManagerAgent(Agent)
         return
 
     # GetAction Function: Called with every frame
     def getAction(self, state):
+        self.managerAgent.registerInitialState(state)
+        action = self.managerAgent.getAction(state)
+        return action
+
+
+class ManagerAgent(Agent):
+    def registerInitialState(self, state):
+        self.dodgingGhostAgent = DodgingGhostAgent(Agent)
+        self.BFSAgent = BFSAgent(Agent)
+        # self.hillClimberAgent = HillClimberAgent(Agent)
+        self.dodgingGhostAgent.registerInitialState(state)
+        self.BFSAgent.registerInitialState(state)
+        # self.hillClimberAgent.registerInitialState(state)
+        return
+
+    def getAction(self, state):
+        ghostPositions = state.getGhostPositions()
+        pacmanPosition = state.getPacmanPosition()
+
+        euclideanDistance = min(getEuclideanDistance(ghostPositions, pacmanPosition))
+        ghostOneDistance = self.getBFSDistance(ghostPositions[0], pacmanPosition, state)
+        ghostTwoDistance = self.getBFSDistance(ghostPositions[1], pacmanPosition, state)
+        BFSDistance = min(ghostOneDistance, ghostTwoDistance)
+
+        if euclideanDistance < 3:
+            if BFSDistance < 4:
+                return self.dodgingGhostAgent.getAction(state)
+            else:
+                return self.BFSAgent.getAction(state)
+                # return self.hillClimberAgent.getAction(state)
+        else:
+            return self.BFSAgent.getAction(state)
+            # return self.hillClimberAgent.getAction(state)
+
+    def getBFSDistance(self, ghostPosition, pacmanPosition, state):
+        mp = state.getWalls()
+        n = len(mp[:])
+        m = len(mp[0])
+        visit = copy.deepcopy(mp)
+        for i in range(n):
+            for j in range(m):
+                visit[i][j] = False
+        visit[pacmanPosition[0]][pacmanPosition[1]] = True
+        queue = []
+        queue.append((pacmanPosition[0], pacmanPosition[1], 0))
+        while len(queue) != 0:
+            current_node = queue.pop(0)
+            position_x = copy.deepcopy(current_node[0])
+            position_y = copy.deepcopy(current_node[1])
+            if position_x == ghostPosition[0] and position_y == ghostPosition[1]:
+                return current_node[2]
+            else:
+                if 0 <= position_x - 1 < n and visit[position_x - 1][position_y] is False \
+                        and mp[position_x - 1][position_y] is False:
+                    visit[position_x - 1][position_y] = True
+                    queue.append((position_x - 1, position_y, current_node[2] + 1))
+                if 0 <= position_x + 1 < n and visit[position_x + 1][position_y] is False \
+                        and mp[position_x + 1][position_y] is False:
+                    visit[position_x + 1][position_y] = True
+                    queue.append((position_x + 1, position_y, current_node[2] + 1))
+                if 0 <= position_y - 1 < m and visit[position_x][position_y - 1] is False \
+                        and mp[position_x][position_y - 1] is False:
+                    visit[position_x][position_y - 1] = True
+                    queue.append((position_x, position_y - 1, current_node[2] + 1))
+                if 0 <= position_y + 1 < m and visit[position_x][position_y + 1] is False \
+                        and mp[position_x][position_y + 1] is False:
+                    visit[position_x][position_y - 1] = True
+                    queue.append((position_x, position_y + 1, current_node[2] + 1))
+
+
+class BFSAgent(Agent):
+    # Initialization Function: Called one time when the game starts
+    def registerInitialState(self, state):
+        return
+
+    # GetAction Function: Called with every frame
+    def getAction(self, state):
+        # initialize
+        mp = state.getWalls()
+        n = len(mp[:])
+        m = len(mp[0])
+        visit = copy.deepcopy(mp)
+        for i in range(n):
+            for j in range(m):
+                visit[i][j] = False
+        pacman_position = state.getPacmanPosition()
+        visit[pacman_position[0]][pacman_position[1]] = True
+        pellets = state.getPellets()
         capsules = state.getCapsules()
-        # if len(capsules) == 2:
-        return Directions.STOP
+        queue = []
+        legal = state.getLegalPacmanActions()
+        for action in legal:
+            if action is Directions.WEST:
+                position_x = pacman_position[0] - 1
+                position_y = pacman_position[1]
+                visit[position_x][position_y] = True
+                queue.append((position_x, position_y, Directions.WEST))
+            elif action is Directions.EAST:
+                position_x = pacman_position[0] + 1
+                position_y = pacman_position[1]
+                visit[position_x][position_y] = True
+                queue.append((position_x, position_y, Directions.EAST))
+            elif action is Directions.NORTH:
+                position_x = pacman_position[0]
+                position_y = pacman_position[1] + 1
+                visit[position_x][position_y] = True
+                queue.append((position_x, position_y, Directions.NORTH))
+            elif action is Directions.SOUTH:
+                position_x = pacman_position[0]
+                position_y = pacman_position[1] - 1
+                visit[position_x][position_y] = True
+                queue.append((position_x, position_y, Directions.SOUTH))
+            else:
+                queue.append((pacman_position[0], pacman_position[1], Directions.STOP))
+        next_action = Directions.STOP
+        while len(queue) != 0:
+            current_node = queue.pop(0)
+            position_x = copy.deepcopy(current_node[0])
+            position_y = copy.deepcopy(current_node[1])
+            if (position_x, position_y) in pellets or (position_x, position_y) in capsules:
+                next_action = current_node[2]
+                break
+            else:
+                if 0 <= position_x - 1 < n and visit[position_x - 1][position_y] is False \
+                        and mp[position_x - 1][position_y] is False:
+                    visit[position_x - 1][position_y] = True
+                    queue.append((position_x - 1, position_y, current_node[2]))
+                if 0 <= position_x + 1 < n and visit[position_x + 1][position_y] is False \
+                        and mp[position_x + 1][position_y] is False:
+                    visit[position_x + 1][position_y] = True
+                    queue.append((position_x + 1, position_y, current_node[2]))
+                if 0 <= position_y - 1 < m and visit[position_x][position_y - 1] is False \
+                        and mp[position_x][position_y - 1] is False:
+                    visit[position_x][position_y - 1] = True
+                    queue.append((position_x, position_y - 1, current_node[2]))
+                if 0 <= position_y + 1 < m and visit[position_x][position_y + 1] is False \
+                        and mp[position_x][position_y + 1] is False:
+                    visit[position_x][position_y - 1] = True
+                    queue.append((position_x, position_y + 1, current_node[2]))
+
+                    # (the next states, the first action the pacman going to take, depth)
+        return next_action
 
 
 class HillClimberAgent(Agent):
@@ -46,10 +186,10 @@ class HillClimberAgent(Agent):
     def getAction(self, state):
         # generate the first seq
         # get all possible actions for pacman
-        tempState = copy.deepcopy(state)
         actionList = []
         for i in range(0, 5):
             actionList.append(Directions.STOP)
+        tempState = copy.deepcopy(state)
         for i in range(0, len(actionList)):
             if tempState.isWin() + tempState.isLose() == 0:
                 legal = tempState.getLegalPacmanActions()
@@ -70,8 +210,10 @@ class HillClimberAgent(Agent):
                     legal = tempState.getLegalPacmanActions()
                     newActionList[i] = legal[random.randint(0, len(legal) - 1)]
                     tempState = tempState.generatePacmanSuccessor(newActionList[i])
-                else: break
-            if tempState is None: break
+                else:
+                    break
+            if tempState is None:
+                break
             else:
                 # else it is not the win state
                 newScore = gameEvaluation(state, tempState)
@@ -85,7 +227,7 @@ class HillClimberAgent(Agent):
         return actionList[0]
 
 
-class DodgingGhost(Agent):
+class DodgingGhostAgent(Agent):
     def registerInitialState(self, state):
         return
 

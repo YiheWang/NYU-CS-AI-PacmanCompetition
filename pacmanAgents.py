@@ -233,9 +233,9 @@ class DodgingGhostAgent(Agent):
 
     def getAction(self, state):
         actions = state.getLegalPacmanActions()
-        actions.append(Directions.STOP)
-        bestAction = None
-        farthestDistance = 0.0
+        # actions.append(Directions.STOP)
+        bestAction = Directions.REVERSE
+        farthestDistance = -1.0
         # loop to find the farthest euclidean distance between pacman and ghosts
         for action in actions:
             nextState = state.generatePacmanSuccessor(action)

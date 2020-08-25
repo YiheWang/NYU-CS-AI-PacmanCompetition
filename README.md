@@ -1,5 +1,5 @@
 # NYU-CS-AI-PacmanCompetition
-A bot for playing Pacman game. Game environment is based on Berkeley Pacman simulator.
+An AI bot for playing the Pacman game. The game environment is based on the Berkeley Pacman simulator. Our best score is ten consecutive wins, which is the best in class.
 
 [Project goals and how to play it](https://github.com/YiheWang/NYU-CS-AI-PacmanCompetition/blob/master/Competition.pdf)
 
